@@ -1,17 +1,21 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import prisma from "../config/database";
 
-export const getUsers = async (req: Request, res: Response) => {
+export const getUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const users = await prisma.user.findMany({ include: { role: true } });
     res.json(users);
   } catch (error) {
-    res.status(500).json({ error: "Erro ao buscar usuários." });
+    next();
   }
 };
 
-export const createUser = async (req: Request, res: Response) => {
+export const createUser = async (req: Request, res: Response, next: NextFunction) => {
   const { name, email, password, roleId } = req.body;
 
   try {
@@ -21,6 +25,6 @@ export const createUser = async (req: Request, res: Response) => {
     });
     res.status(201).json(user);
   } catch (error) {
-    res.status(400).json({ error: "Erro ao criar usuário." });
+    next();
   }
 };

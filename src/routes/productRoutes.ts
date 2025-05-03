@@ -6,13 +6,14 @@ import {
   deleteProduct,
 } from "../controllers/productController";
 import { authenticateToken } from "../middlewares/authMiddleware";
-import { validateProductInput } from "../middlewares/productValidation";
+import { validateRequest } from "../middlewares/requestValidation";
+import { productSchema } from "../middlewares/productValidation";
 
 const router = Router();
 
 router.get("/", authenticateToken, getProducts);
-router.post("/", authenticateToken, validateProductInput, createProduct);
-router.put("/:id", authenticateToken, validateProductInput, updateProduct);
+router.post("/", authenticateToken, validateRequest(productSchema), createProduct);
+router.put("/:id", authenticateToken, validateRequest(productSchema), updateProduct);
 router.delete("/:id", authenticateToken, deleteProduct);
 
 export default router;

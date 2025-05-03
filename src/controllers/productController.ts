@@ -1,18 +1,18 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import prisma from "../config/database";
 
-export const getProducts = async (req: Request, res: Response) => {
+export const getProducts = async (req: Request, res: Response, next:NextFunction) => {
   try {
     const products = await prisma.product.findMany({
       include: { category: true },
     });
     res.json(products);
   } catch (error) {
-    res.status(500).json({ error: "Erro ao buscar produtos." });
+    next()
   }
 };
 
-export const createProduct = async (req: Request, res: Response) => {
+export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
   const { name, price, categoryId } = req.body;
 
   try {
@@ -22,11 +22,11 @@ export const createProduct = async (req: Request, res: Response) => {
 
     res.status(201).json(product);
   } catch (error) {
-    res.status(400).json({ error: "Erro ao criar produto." });
+    next()
   }
 };
 
-export const updateProduct = async (req: Request, res: Response) => {
+export const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   const { name, price, categoryId } = req.body;
 
@@ -38,17 +38,17 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     res.json(product);
   } catch (error) {
-    res.status(400).json({ error: "Erro ao atualizar produto." });
+    next()
   }
 };
 
-export const deleteProduct = async (req: Request, res: Response) => {
+export const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
 
   try {
     await prisma.product.delete({ where: { id } });
     res.json({ message: "Produto removido com sucesso." });
   } catch (error) {
-    res.status(400).json({ error: "Erro ao remover produto." });
+    next()
   }
 };

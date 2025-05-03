@@ -8,6 +8,7 @@ import addressRoutes from "./routes/addressRoutes";
 import productRoutes from "./routes/productRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
 import orderRoutes from "./routes/orderRoutes";
+import { errorHandler } from "./middlewares/errorHandler";
 
 dotenv.config();
 
@@ -15,6 +16,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use(errorHandler);
 
 app.get("/", (req: Request, res: Response) => {
   res.json({ message: "API Funcionando!" });

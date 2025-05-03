@@ -1,18 +1,7 @@
-import { Request, Response, NextFunction } from "express";
+import Joi from "joi";
 
-export const validateProductInput = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const { name, price, categoryId } = req.body;
-
-  if (!name || typeof price !== "number" || !categoryId) {
-    res
-      .status(400)
-      .json({ error: "Nome, preço e categoria são obrigatórios." });
-    return;
-  }
-
-  next();
-};
+export const productSchema = Joi.object({
+  name: Joi.string().required(),
+  price: Joi.number().min(0).required(),
+  categoryId: Joi.string().required(),
+});

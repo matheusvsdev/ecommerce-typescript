@@ -1,8 +1,12 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import prisma from "../config/database";
 import { calculateDeliveryFee } from "../utils/deliveryUtils";
 
-export const createOrder = async (req: Request, res: Response) => {
+export const createOrder = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { userId, products, addressId } = req.body;
 
   try {
@@ -81,6 +85,6 @@ export const createOrder = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Erro ao criar pedido:", error);
-    res.status(500).json({ error: "Erro ao criar pedido." });
+    next();
   }
 };
