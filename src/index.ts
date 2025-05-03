@@ -4,8 +4,10 @@ import cors from "cors";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import roleRoutes from "./routes/roleRoutes";
+import addressRoutes from "./routes/addressRoutes";
 import productRoutes from "./routes/productRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
+import orderRoutes from "./routes/orderRoutes";
 
 dotenv.config();
 
@@ -21,8 +23,10 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/auth", authRoutes);
 app.use("/users", userRoutes);
 app.use("/roles", roleRoutes);
+app.use("/addresses", addressRoutes);
 app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);
+app.use("/orders", orderRoutes);
 
 const PORT = process.env.PORT || 3001;
 
