@@ -1,6 +1,9 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import authRoutes from "./routes/authRoutes";
+import userRoutes from "./routes/userRoutes";
+import roleRoutes from "./routes/roleRoutes";
 
 dotenv.config();
 
@@ -12,6 +15,10 @@ app.use(express.json());
 app.get("/", (req: Request, res: Response) => {
   res.json({ message: "API Funcionando!" });
 });
+
+app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
+app.use("/roles", roleRoutes);
 
 const PORT = process.env.PORT || 3001;
 
