@@ -9,7 +9,7 @@ export const validateData = (schema: ZodSchema<any>) => {
       schema.parse(req.body); // **Valida os dados**
       next(); // Continua para o controller se estiver tudo certo
     } catch (error: any) {
-      next(new AppError(error.errors[0].message, HttpStatusCode.BAD_REQUEST)); // Envia erro de validação
+      next(new AppError(error.errors[0].message, HttpStatusCode.UNPROCESSABLE_ENTITY)); // Envia erro de validação
     }
   };
 };

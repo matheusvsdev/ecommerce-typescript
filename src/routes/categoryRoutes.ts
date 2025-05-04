@@ -4,10 +4,12 @@ import {
   createCategory,
 } from "../controllers/categoryController";
 import { authenticateToken } from "../middlewares/authMiddleware";
+import { validateData } from "../middlewares/validateData";
+import { categorySchema } from "../validations/categoryValidation";
 
 const router = Router();
 
 router.get("/", authenticateToken, getCategories);
-router.post("/", authenticateToken, createCategory);
+router.post("/", authenticateToken, validateData(categorySchema), createCategory);
 
 export default router;

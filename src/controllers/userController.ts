@@ -23,30 +23,39 @@ export const createUser = async (
   res: Response,
   next: NextFunction
 ) => {
-
   // Valida dados com Zod
   userSchema.parse(req.body);
-  const { name, email, password, roleId } = req.body;
+  const { name, email, password, roleId }: { name: string, email: string, password: string, roleId: string} = req.body;
+
+  const emailExists = await prisma.user.findUnique({ where: { email: email } });
+  if (emailExists) {
+    throw new AppError("Email já está em uso.", HttpStatusCode.CONFLICT);
+  }
+
+  if (!roleId) {
+    throw new AppError("Role ID é obrigatório.", HttpStatusCode.BAD_REQUEST);
+  }
 
   // Verifica se o roleId existe no banco
   const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
   if (!roleExists) {
-    throw new AppError("Role ID não encontrado.", HttpStatusCode.BAD_REQUEST);
+    throw new AppError("Role ID não encontrado.", HttpStatusCode.NOT_FOUND);
   }
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: { name, email, password: hashedPassword, roleId },
+      include: { role: true },
     });
 
     // Remover a senha da resposta
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, roleId: __, ...userWithoutSensitiveData } = user;
     res.status(HttpStatusCode.CREATED).json({
       success: true,
       status: "201 Created",
       message: "Usuário criado com sucesso.",
-      data: userWithoutPassword,
+      data: userWithoutSensitiveData,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
