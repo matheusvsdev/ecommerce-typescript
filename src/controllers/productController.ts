@@ -52,6 +52,33 @@ export const createProduct = async (
   }
 };
 
+export const getProductById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        category: true,
+      },
+    });
+    if (!product) {
+      throw new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND);
+    }
+
+    res.json(product);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateProduct = async (
   req: Request,
   res: Response,

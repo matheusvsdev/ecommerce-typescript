@@ -9,6 +9,7 @@ import productRoutes from "./routes/productRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import { errorHandler } from "./middlewares/errorHandler";
+import { swaggerUi, swaggerDocs } from "./config/swagger";
 
 dotenv.config();
 
@@ -30,6 +31,8 @@ app.use("/categories", categoryRoutes);
 app.use("/orders", orderRoutes);
 
 app.use(errorHandler);
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const PORT = process.env.PORT || 3001;
 
