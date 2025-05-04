@@ -9,6 +9,13 @@ export const getProducts = async (
   next: NextFunction
 ) => {
   try {
+
+    /*
+    Exemplo com TypeORM
+    const productRepository = AppDataSource.getRepository(Product);
+    const products = await productRepository.find();
+    */
+   
     const products = await prisma.product.findMany({
       include: { category: true },
     });

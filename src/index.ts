@@ -11,6 +11,8 @@ import orderRoutes from "./routes/orderRoutes";
 import { errorHandler } from "./middlewares/errorHandler";
 import { swaggerUi, swaggerDocs } from "./config/swagger";
 
+// import { AppDataSource } from "./config/config";
+
 dotenv.config();
 
 const app = express();
@@ -37,3 +39,9 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+
+/*
+AppDataSource.initialize()
+  .then(() => console.log("Banco de dados conectado!"))
+  .catch((error) => console.error("Erro ao conectar ao banco:", error));
+*/
