@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from "express";
+import { AppError } from "../utils/AppError";
+import { HttpStatusCode } from "../utils/HttpStatusCode";
 
 export const errorHandler = (
   err: any,
@@ -6,18 +8,18 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error(err); // Log do erro para depuração
+  console.error(`[ERROR] ${err.message} - ${err.timestamp}`);
 
-  if (err.name === "ValidationError") {
-    res.status(400).json({ error: err.message });
-    return;
-  }
+  const statusCode =
+    err instanceof AppError
+      ? err.statusCode
+      : HttpStatusCode.INTERNAL_SERVER_ERROR;
+  const statusText = HttpStatusCode[statusCode] || "Internal Server Error"; // Obtém descrição textual do status
 
-  if (err.name === "UnauthorizedError") {
-    res.status(401).json({ error: "Acesso não autorizado." });
-    return;
-  }
-
-  res.status(500).json({ error: "Erro interno no servidor." });
-  return;
+  res.status(statusCode).json({
+    success: false,
+    status: `${statusCode} ${statusText}`, // Exibe o código HTTP com descrição
+    message: err.message || "Erro interno no servidor.",
+    timestamp: err.timestamp || new Date().toISOString(),
+  });
 };

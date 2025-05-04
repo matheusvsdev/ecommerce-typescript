@@ -17,8 +17,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use(errorHandler);
-
 app.get("/", (req: Request, res: Response) => {
   res.json({ message: "API Funcionando!" });
 });
@@ -30,6 +28,8 @@ app.use("/addresses", addressRoutes);
 app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/orders", orderRoutes);
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 

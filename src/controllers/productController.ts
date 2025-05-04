@@ -1,54 +1,103 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../config/database";
+import { AppError } from "../utils/AppError";
+import { HttpStatusCode } from "../utils/HttpStatusCode";
 
-export const getProducts = async (req: Request, res: Response, next:NextFunction) => {
+export const getProducts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const products = await prisma.product.findMany({
       include: { category: true },
     });
-    res.json(products);
+
+    // Remover o campo `categoryId` antes de enviar a resposta
+    const formattedProducts = products.map(({ categoryId, ...rest }) => rest);
+
+    res.json(formattedProducts);
   } catch (error) {
-    next()
+    next(error);
   }
 };
 
-export const createProduct = async (req: Request, res: Response, next: NextFunction) => {
+export const createProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { name, price, categoryId } = req.body;
 
   try {
+    if (!name || !price || !categoryId) {
+      throw new AppError(
+        "Dados inválidos para criação.",
+        HttpStatusCode.BAD_REQUEST
+      );
+    }
+
+    const existingProduct = await prisma.product.findFirst({ where: { name } });
+    if (existingProduct) {
+      throw new AppError("Produto já existe.", HttpStatusCode.CONFLICT);
+    }
+
     const product = await prisma.product.create({
       data: { name, price, categoryId },
     });
 
-    res.status(201).json(product);
+    res.status(HttpStatusCode.CREATED).json(product);
   } catch (error) {
-    next()
+    next(error);
   }
 };
 
-export const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
+export const updateProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { id } = req.params;
   const { name, price, categoryId } = req.body;
 
   try {
-    const product = await prisma.product.update({
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) {
+      throw new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND);
+    }
+
+    const updatedProduct = await prisma.product.update({
       where: { id },
       data: { name, price, categoryId },
     });
 
-    res.json(product);
+    res.json(updatedProduct);
   } catch (error) {
-    next()
+    next(error);
   }
 };
 
-export const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { id } = req.params;
 
   try {
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) {
+      throw new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND);
+    }
+
     await prisma.product.delete({ where: { id } });
-    res.json({ message: "Produto removido com sucesso." });
+    res.status(HttpStatusCode.OK).json({
+      success: true,
+      status: "200 OK",
+      message: "Produto removido com sucesso.",
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
-    next()
+    next(error);
   }
 };
