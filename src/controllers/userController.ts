@@ -1,8 +1,6 @@
-import { Request, Response, NextFunction } from "express";
-import bcrypt from "bcryptjs";
-import prisma from "../config/database";
+import { NextFunction, Request, Response } from "express";
+import { getUsersService, createUserService } from "../services/userService";
 import { userSchema } from "../validations/userValidation";
-import { AppError } from "../utils/AppError";
 import { HttpStatusCode } from "../utils/HttpStatusCode";
 
 export const getUsers = async (
@@ -11,7 +9,7 @@ export const getUsers = async (
   next: NextFunction
 ) => {
   try {
-    const users = await prisma.user.findMany({ include: { role: true } });
+    const users = await getUsersService();
     res.status(HttpStatusCode.OK).json(users);
   } catch (error) {
     next(error);
@@ -23,46 +21,16 @@ export const createUser = async (
   res: Response,
   next: NextFunction
 ) => {
-  userSchema.parse(req.body);
-  const {
-    name,
-    email,
-    password,
-    roleId,
-  }: { name: string; email: string; password: string; roleId: string } =
-    req.body;
-
-  const emailExists = await prisma.user.findUnique({ where: { email: email } });
-  if (emailExists) {
-    return next(new AppError("Email já está em uso.", HttpStatusCode.CONFLICT));
-  }
-
-  if (!roleId) {
-    throw new AppError("Role ID é obrigatório.", HttpStatusCode.BAD_REQUEST);
-  }
-
-  // Verifica se o roleId existe no banco
-  const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
-  if (!roleExists) {
-    return next(
-      new AppError("Role ID não encontrado.", HttpStatusCode.NOT_FOUND)
-    );
-  }
-
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: { name, email, password: hashedPassword, roleId },
-      include: { role: true },
-    });
+    userSchema.parse(req.body);
+    const { name, email, password, roleId } = req.body;
 
-    // Remover a senha da resposta
-    const { password: _, roleId: __, ...userWithoutSensitiveData } = user;
+    const newUser = await createUserService(name, email, password, roleId);
     res.status(HttpStatusCode.CREATED).json({
       success: true,
       status: "201 Created",
       message: "Usuário criado com sucesso.",
-      data: userWithoutSensitiveData,
+      data: newUser,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
