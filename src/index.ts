@@ -10,6 +10,7 @@ import addressRoutes from "./routes/addressRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import { notFoundHandler, errorHandler } from "./middlewares/errorHandlers";
 import { swaggerUi, swaggerDocs } from "./config/swagger";
+import { requestLogger } from "./middlewares/requestLogger";
 
 // import { AppDataSource } from "./config/config";
 
@@ -24,6 +25,9 @@ app.get("/", (req: Request, res: Response) => {
   res.json({ message: "API Funcionando!" });
 });
 
+// Middleware de logging (antes dos routers)
+app.use(requestLogger);
+
 // Definição das rotas
 app.use("/auth", authRoutes);
 app.use("/roles", roleRoutes);
@@ -36,7 +40,7 @@ app.use("/orders", orderRoutes);
 // Documentação Swagger (antes da captura de erros)
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-// Captura de erros
+// Middleware de tratamento de erros (sempre por último!)
 app.use(notFoundHandler);
 app.use(errorHandler);
 

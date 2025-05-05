@@ -4,7 +4,14 @@ import { AppError } from "../utils/AppError";
 import { HttpStatusCode } from "../utils/HttpStatusCode";
 
 export async function getUsersService() {
-  return prisma.user.findMany({ include: { role: true } });
+  return prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: { select: { name: true } },
+    },
+  });
 }
 
 export async function createUserService(

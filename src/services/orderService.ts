@@ -8,61 +8,80 @@ import {
 } from "../utils/orderUtils";
 
 export async function getOrdersService(userId: string, role: string) {
-  if (role === "ADMIN" || role === "MANAGER") {
-    return prisma.order.findMany({
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        products: {
+  const orders =
+    role === "ADMIN" || role === "MANAGER"
+      ? await prisma.order.findMany({
           include: {
-            product: {
+            user: { select: { id: true, name: true, email: true } },
+            products: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    price: true,
+                    category: { select: { id: true, name: true } },
+                  },
+                },
+              },
+            },
+            address: {
               select: {
                 id: true,
-                name: true,
-                price: true,
-                category: { select: { id: true, name: true } },
+                street: true,
+                city: true,
+                state: true,
+                zip: true,
               },
             },
           },
-        },
-        address: {
-          select: {
-            id: true,
-            street: true,
-            city: true,
-            state: true,
-            zip: true,
-          },
-        },
-      },
-    });
-  } else {
-    return prisma.order.findMany({
-      where: { userId },
-      include: {
-        products: {
+        })
+      : await prisma.order.findMany({
+          where: { userId },
           include: {
-            product: {
+            products: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    price: true,
+                    category: { select: { id: true, name: true } },
+                  },
+                },
+              },
+            },
+            address: {
               select: {
                 id: true,
-                name: true,
-                price: true,
-                category: { select: { id: true, name: true } },
+                street: true,
+                city: true,
+                state: true,
+                zip: true,
               },
             },
           },
-        },
-        address: {
-          select: {
-            id: true,
-            street: true,
-            city: true,
-            state: true,
-            zip: true,
-          },
-        },
+        });
+
+  // 🔹 Agora formatamos os dados antes de retornar
+  return orders.map((order) => ({
+    orderId: order.id,
+    client: order.userId,
+    items: order.products.map((item) => ({
+      product: {
+        id: item.product.id,
+        name: item.product.name,
+        price: parseFloat(item.product.price.toFixed(2)),
+        category: item.product.category,
       },
-    });
-  }
+      quantity: item.quantity,
+      priceAtPurchase: parseFloat(item.priceAtPurchase.toFixed(2)),
+    })),
+    subtotal: parseFloat(order.subtotal.toFixed(2)),
+    deliveryFee: parseFloat(order.deliveryFee.toFixed(2)),
+    total: parseFloat(order.total.toFixed(2)),
+    address: order.addressId,
+  }));
 }
 
 export async function getOrderByIdService(
@@ -128,7 +147,26 @@ export async function getOrderByIdService(
 
   if (!order)
     throw new AppError("Pedido não encontrado.", HttpStatusCode.NOT_FOUND);
-  return order;
+
+  // 🔹 Estruturamos a resposta corretamente
+  return {
+    id: order.id,
+    client: order.userId,
+    items: order.products.map((item) => ({
+      product: {
+        id: item.product.id,
+        name: item.product.name,
+        price: parseFloat(item.product.price.toFixed(2)),
+        category: item.product.category,
+      },
+      quantity: item.quantity,
+      priceAtPurchase: parseFloat(item.priceAtPurchase.toFixed(2)),
+    })),
+    subtotal: parseFloat(order.subtotal.toFixed(2)),
+    deliveryFee: parseFloat(order.deliveryFee.toFixed(2)),
+    total: parseFloat(order.total.toFixed(2)),
+    address: order.address,
+  };
 }
 
 export async function createOrderService(
@@ -141,14 +179,20 @@ export async function createOrderService(
   const deliveryFee = await calculateDeliveryFee(addressId, subtotal);
   const total = parseFloat((subtotal + deliveryFee).toFixed(2));
 
-  return prisma.order.create({
+  const order = await prisma.order.create({
     data: {
-      userId,
-      addressId,
+      user: { connect: { id: userId } },
+      address: { connect: { id: addressId } },
+      products: {
+        create: orderItems.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          priceAtPurchase: item.priceAtPurchase,
+        })),
+      },
       subtotal,
       deliveryFee,
       total,
-      products: { create: orderItems },
     },
     include: {
       user: { select: { id: true, name: true, email: true } },
@@ -159,7 +203,7 @@ export async function createOrderService(
               id: true,
               name: true,
               price: true,
-              category: { select: { name: true } },
+              category: { select: { id: true, name: true } },
             },
           },
         },
@@ -169,4 +213,24 @@ export async function createOrderService(
       },
     },
   });
+
+  // Agora formatamos a resposta antes de retornar ao controller
+  return {
+    id: order.id,
+    client: order.user,
+    items: order.products.map((item) => ({
+      product: {
+        id: item.product.id,
+        name: item.product.name,
+        price: parseFloat(item.product.price.toFixed(2)),
+        category: item.product.category,
+      },
+      quantity: item.quantity,
+      priceAtPurchase: parseFloat(item.priceAtPurchase.toFixed(2)),
+    })),
+    subtotal,
+    deliveryFee,
+    total,
+    address: order.address,
+  };
 }

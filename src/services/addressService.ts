@@ -2,15 +2,20 @@ import prisma from "../config/database";
 import { AppError } from "../utils/AppError";
 import { HttpStatusCode } from "../utils/HttpStatusCode";
 
-export async function getAddressesService(userId: string, role: string) {
-  return role === "ADMIN" || role === "MANAGER"
-    ? prisma.address.findMany({
-        include: { user: { select: { id: true, name: true, email: true } } },
-      })
-    : prisma.address.findMany({
-        where: { userId },
-        include: { user: { select: { id: true, name: true, email: true } } },
-      });
+export async function getAddressesService(id: string, role: string) {
+  console.log("UserId recebido:", id);
+
+  if (role === "ADMIN" || role === "MANAGER") {
+    return await prisma.address.findMany({
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+  }
+
+  // Garante que apenas endereços do usuário logado sejam retornados
+  return await prisma.address.findMany({
+    where: { userId: id },
+    include: { user: { select: { id: true, name: true, email: true } } },
+  });
 }
 
 export async function getAddressByIdService(

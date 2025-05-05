@@ -8,6 +8,8 @@ import {
   deleteAddressService,
 } from "../services/addressService";
 import { HttpStatusCode } from "../utils/HttpStatusCode";
+import { ZodError } from "zod";
+import { AppError } from "../utils/AppError";
 
 export const getAddress = async (
   req: Request,
@@ -54,6 +56,14 @@ export const createAddress = async (
     );
     res.status(HttpStatusCode.CREATED).json(newAddress);
   } catch (error) {
+    if (error instanceof ZodError) {
+      return next(
+        new AppError(
+          error.errors.map((err) => err.message).join(", "),
+          HttpStatusCode.UNPROCESSABLE_ENTITY
+        )
+      );
+    }
     next(error);
   }
 };

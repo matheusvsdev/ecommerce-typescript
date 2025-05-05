@@ -22,6 +22,12 @@ export async function createProductService(
     );
   }
 
+  // Verifica se a categoria existe antes de criar o produto
+  const categoryExists = await prisma.category.findUnique({ where: { id: categoryId } });
+  if (!categoryExists) {
+    throw new AppError("Categoria não encontrada.", HttpStatusCode.NOT_FOUND);
+  }
+
   const existingProduct = await prisma.product.findFirst({ where: { name } });
   if (existingProduct)
     throw new AppError("Produto já existe.", HttpStatusCode.CONFLICT);
@@ -56,6 +62,12 @@ export async function updateProductService(
   const product = await prisma.product.findUnique({ where: { id } });
   if (!product)
     throw new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND);
+
+  // Verifica se a categoria existe antes de criar o produto
+  const categoryExists = await prisma.category.findUnique({ where: { id: categoryId } });
+  if (!categoryExists) {
+    throw new AppError("Categoria não encontrada.", HttpStatusCode.NOT_FOUND);
+  }
 
   return prisma.product.update({
     where: { id },

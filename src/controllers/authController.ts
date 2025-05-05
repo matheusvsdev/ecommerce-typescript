@@ -53,14 +53,17 @@ export const login = async (
   const { email, password } = req.body;
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
+    });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return next(
         new AppError("Credenciais inválidas.", HttpStatusCode.UNAUTHORIZED)
       );
     }
 
-    const token = jwt.sign({ userId: user.id, role: user.roleId }, secret, {
+    const token = jwt.sign({ userId: user.id, role: user.role.name }, secret, {
       expiresIn: "1h",
     });
     res.json({ token });

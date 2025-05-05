@@ -42,7 +42,14 @@ export const createOrder = async (
   try {
     const { userId, products, addressId } = req.body;
     const order = await createOrderService(userId, products, addressId);
-    res.status(HttpStatusCode.CREATED).json({ order });
+    res
+      .status(HttpStatusCode.CREATED)
+      .json({
+        order,
+        subTotal: order.subtotal,
+        deliveryFee: order.deliveryFee,
+        total: order.total,
+      });
   } catch (error) {
     next(error);
   }
