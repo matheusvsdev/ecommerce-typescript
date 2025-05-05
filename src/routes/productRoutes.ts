@@ -6,7 +6,13 @@ import {
   updateProduct,
   deleteProduct,
 } from "../controllers/productController";
-import { authenticateToken } from "../middlewares/authMiddleware";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "../middlewares/authMiddleware";
+import { validateData } from "../middlewares/validateData";
+import { productSchema } from "../validations/productValidation";
+import { RoleName } from "@prisma/client";
 
 const router = Router();
 
@@ -42,26 +48,6 @@ router.get("/", getProducts);
 
 /**
  * @swagger
- * /products:
- *   post:
- *     summary: Cria um novo produto
- *     tags: [Produtos]
- *     security:
- *        - bearerAuth: []
- *     responses:
- *       201:
- *         description: Produto criado com sucesso
- *       400:
- *         description: Dados inválidos na requisição
- *       401:
- *         description: Não autorizado -  autenticação necessária
- *       500:
- *         description: Erro no servidor
- */
-router.post("/", authenticateToken, createProduct);
-
-/**
- * @swagger
  * /products/{id}:
  *   get:
  *     summary: Retorna um produto específico pelo ID
@@ -83,6 +69,39 @@ router.post("/", authenticateToken, createProduct);
  *         description: Erro interno do servidor
  */
 router.get("/:id", getProductById);
+
+/**
+ * @swagger
+ * tags:
+ *   name: Produtos
+ *   description: Gerenciamento de produtos
+ */
+
+/**
+ * @swagger
+ * /products:
+ *   post:
+ *     summary: Cria um novo produto
+ *     tags: [Produtos]
+ *     security:
+ *        - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Produto criado com sucesso
+ *       400:
+ *         description: Dados inválidos na requisição
+ *       401:
+ *         description: Não autorizado -  autenticação necessária
+ *       500:
+ *         description: Erro no servidor
+ */
+router.post(
+  "/",
+  authenticateToken,
+  authorizeRoles([RoleName.ADMIN, RoleName.MANAGER]),
+  validateData(productSchema),
+  createProduct
+);
 
 /**
  * @swagger
@@ -117,7 +136,13 @@ router.get("/:id", getProductById);
  *       500:
  *         description: Erro no servidor
  */
-router.put("/:id", authenticateToken, updateProduct);
+router.put(
+  "/:id",
+  authenticateToken,
+  authorizeRoles([RoleName.ADMIN, RoleName.MANAGER]),
+  validateData(productSchema),
+  updateProduct
+);
 
 /**
  * @swagger
@@ -145,6 +170,11 @@ router.put("/:id", authenticateToken, updateProduct);
  *       500:
  *         description: Erro interno do servidor
  */
-router.delete("/:id", authenticateToken, deleteProduct);
+router.delete(
+  "/:id",
+  authenticateToken,
+  authorizeRoles([RoleName.ADMIN, RoleName.MANAGER]),
+  deleteProduct
+);
 
 export default router;

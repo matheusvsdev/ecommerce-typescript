@@ -2,13 +2,13 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes";
-import userRoutes from "./routes/userRoutes";
 import roleRoutes from "./routes/roleRoutes";
-import addressRoutes from "./routes/addressRoutes";
-import productRoutes from "./routes/productRoutes";
+import userRoutes from "./routes/userRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
+import productRoutes from "./routes/productRoutes";
+import addressRoutes from "./routes/addressRoutes";
 import orderRoutes from "./routes/orderRoutes";
-import { errorHandler } from "./middlewares/errorHandler";
+import { notFoundHandler, errorHandler } from "./middlewares/errorHandlers";
 import { swaggerUi, swaggerDocs } from "./config/swagger";
 
 // import { AppDataSource } from "./config/config";
@@ -24,17 +24,21 @@ app.get("/", (req: Request, res: Response) => {
   res.json({ message: "API Funcionando!" });
 });
 
+// Definição das rotas
 app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
 app.use("/roles", roleRoutes);
-app.use("/addresses", addressRoutes);
-app.use("/products", productRoutes);
+app.use("/users", userRoutes);
 app.use("/categories", categoryRoutes);
+app.use("/products", productRoutes);
+app.use("/addresses", addressRoutes);
 app.use("/orders", orderRoutes);
 
-app.use(errorHandler);
-
+// Documentação Swagger (antes da captura de erros)
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+// Captura de erros
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 

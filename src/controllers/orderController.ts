@@ -1,72 +1,206 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../config/database";
 import { calculateDeliveryFee } from "../utils/deliveryUtils";
+import {
+  validateUserAndAddress,
+  calculateOrderItems,
+} from "../utils/orderUtils";
 import { HttpStatusCode } from "../utils/HttpStatusCode";
 import { AppError } from "../utils/AppError";
+
+export const getOrders = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userId, role } = (req as any).user;
+
+    let orders;
+
+    if (role === "ADMIN" || role === "MANAGER") {
+      // ADMIN e MANAGER veem todos os pedidos
+      orders = await prisma.order.findMany({
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          products: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  category: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          address: {
+            select: {
+              id: true,
+              street: true,
+              city: true,
+              state: true,
+              zip: true,
+            },
+          },
+        },
+      });
+    } else {
+      // 🔹 Usuário comum vê apenas seus pedidos
+      orders = await prisma.order.findMany({
+        where: { userId }, // 🔹 Filtra pedidos pelo ID do usuário logado
+        include: {
+          products: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  category: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          address: {
+            select: {
+              id: true,
+              street: true,
+              city: true,
+              state: true,
+              zip: true,
+            },
+          },
+        },
+      });
+    }
+
+    res.status(HttpStatusCode.OK).json(orders);
+  } catch (error) {
+    console.error("[ERROR] Falha ao listar pedidos:", error);
+    next(error);
+  }
+};
+
+export const getOrderById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { id } = req.params;
+  const { userId, role } = (req as any).user;
+
+  try {
+    let order;
+
+    if (role === "ADMIN" || role === "MANAGER") {
+      // ADMIN e MANAGER podem ver qualquer pedido
+      order = await prisma.order.findUnique({
+        where: { id },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          products: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  category: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          address: {
+            select: {
+              id: true,
+              street: true,
+              city: true,
+              state: true,
+              zip: true,
+            },
+          },
+        },
+      });
+    } else {
+      // Usuário comum só vê pedidos dele
+      order = await prisma.order.findUnique({
+        where: { id, userId }, // Filtra pelo pedido e usuário logado
+        include: {
+          products: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  category: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          address: {
+            select: {
+              id: true,
+              street: true,
+              city: true,
+              state: true,
+              zip: true,
+            },
+          },
+        },
+      });
+    }
+
+    if (!order) {
+      return next(
+        new AppError("Pedido não encontrado.", HttpStatusCode.NOT_FOUND)
+      );
+    }
+
+    res.status(HttpStatusCode.OK).json(order);
+  } catch (error) {
+    console.error("[ERROR] Falha ao buscar pedido:", error);
+    next(error);
+  }
+};
 
 export const createOrder = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { userId, products, addressId } = req.body;
-
   try {
-    let subtotal = 0;
-    const orderItems = [];
+    const { userId, products, addressId } = req.body;
 
-    // Calcular subtotal baseado nos produtos
-    for (const item of products) {
-      const product = await prisma.product.findUnique({
-        where: { id: item.productId },
-      });
-      if (!product) {
-        throw new AppError(
-          `Produto com ID: ${item.productId} não encontrado.`,
-          HttpStatusCode.NOT_FOUND
-        );
-      }
+    await validateUserAndAddress(userId, addressId);
 
-      orderItems.push({
-        productId: item.productId,
-        quantity: item.quantity,
-        priceAtPurchase: parseFloat(product.price.toFixed(2)), // Salvar preço no momento da compra
-      });
+    const { subtotal, orderItems } = await calculateOrderItems(products);
 
-      subtotal += product.price.toNumber() * item.quantity; // Agora soma corretamente os valores
-    }
-
-    // Calcular taxa de entrega com tratamento de erro
-    let deliveryFee = 0;
+    let deliveryFee;
     try {
       deliveryFee = await calculateDeliveryFee(addressId, subtotal);
-      if (isNaN(deliveryFee)) throw new Error("Erro no cálculo do frete.");
-    } catch (error) {
-      console.error("Erro ao calcular frete:", error);
-      res.status(500).json({ error: "Erro ao calcular frete." });
-      return;
+      if (isNaN(deliveryFee)) throw new Error();
+    } catch {
+      return next(
+        new AppError(
+          "Erro ao calcular frete.",
+          HttpStatusCode.INTERNAL_SERVER_ERROR
+        )
+      );
     }
 
-    // Garantir duas casas decimais
-    subtotal = parseFloat(subtotal.toFixed(2));
-    deliveryFee = parseFloat(deliveryFee.toFixed(2));
     const total = parseFloat((subtotal + deliveryFee).toFixed(2));
 
-    // Criar o pedido
     const order = await prisma.order.create({
       data: {
-        user: { connect: { id: userId } },
-        address: { connect: { id: addressId } },
-        products: {
-          create: orderItems.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            priceAtPurchase: item.priceAtPurchase,
-          })),
-        },
+        userId,
+        addressId,
         subtotal,
         deliveryFee,
         total,
+        products: { create: orderItems },
       },
       include: {
         user: { select: { id: true, name: true, email: true } },
@@ -77,12 +211,7 @@ export const createOrder = async (
                 id: true,
                 name: true,
                 price: true,
-                category: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
+                category: { select: { name: true } },
               },
             },
           },
@@ -99,8 +228,7 @@ export const createOrder = async (
       },
     });
 
-    // Retornar resposta incluindo subtotal, frete e total
-    res.status(201).json({
+    res.status(HttpStatusCode.CREATED).json({
       order: {
         id: order.id,
         client: order.user,
@@ -109,7 +237,7 @@ export const createOrder = async (
             id: item.product.id,
             name: item.product.name,
             price: parseFloat(item.product.price.toFixed(2)),
-            category: item.product.category, // ✅ Agora categoria está visível como um objeto
+            category: item.product.category,
           },
           quantity: item.quantity,
           priceAtPurchase: parseFloat(item.priceAtPurchase.toFixed(2)),
@@ -121,7 +249,7 @@ export const createOrder = async (
       },
     });
   } catch (error) {
-    console.error("Erro ao criar pedido:", error);
-    next();
+    console.error("[ERROR] Falha ao criar pedido:", error);
+    next(error);
   }
 };

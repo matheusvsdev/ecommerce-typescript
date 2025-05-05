@@ -13,6 +13,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RoleName {
+  ADMIN
+  MANAGER
+  USER
+}
+
+model Role {
+  id    String   @id @default(uuid())
+  name  RoleName @unique
+  users User[]
+}
+
 model User {
   id        String    @id @default(uuid())
   name      String
@@ -22,12 +34,6 @@ model User {
   roleId    String
   Order     Order[]
   addresses Address[]
-}
-
-model Role {
-  id    String @id @default(uuid())
-  name  String @unique
-  users User[]
 }
 
 model Category {

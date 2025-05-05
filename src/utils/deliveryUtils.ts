@@ -1,30 +1,33 @@
 import prisma from "../config/database";
+import { AppError } from "../utils/AppError";
+import { HttpStatusCode } from "../utils/HttpStatusCode";
 
 const freightRatesByState: Record<string, number> = {
-  AL: 10.0, // Alagoas (empresa local, frete mais barato)
-  PE: 15.0, // Pernambuco
-  BA: 18.0, // Bahia
-  SE: 20.0, // Sergipe
-  SP: 30.0, // São Paulo (mais distante)
-  RJ: 28.0, // Rio de Janeiro
+  AL: 10.0,
+  PE: 15.0,
+  BA: 18.0,
+  SE: 20.0,
+  SP: 30.0,
+  RJ: 28.0,
 };
 
 export const calculateDeliveryFee = async (
   addressId: string,
-  total: number // Adicionamos o total do pedido
+  total: number
 ): Promise<number> => {
-  if (total >= 100) {
-    return 0; // Frete grátis para pedidos acima de R$100
-  }
+  if (total >= 100) return 0; // Frete grátis para pedidos acima de R$100
 
   const address = await prisma.address.findUnique({ where: { id: addressId } });
-  if (!address) throw new Error("Endereço não encontrado.");
+  if (!address)
+    throw new AppError("Endereço não encontrado.", HttpStatusCode.NOT_FOUND);
 
-  const userState = address.state; // Obtém o estado do usuário
-  console.log("Estado do usuário:", userState);
+  const userState = address.state;
 
-  if (!(userState in freightRatesByState)) {
-    throw new Error(`Não realizamos entregas para o estado ${userState}.`);
+  if (!freightRatesByState[userState]) {
+    throw new AppError(
+      `Não realizamos entregas para o estado ${userState}.`,
+      HttpStatusCode.BAD_REQUEST
+    );
   }
 
   return freightRatesByState[userState];

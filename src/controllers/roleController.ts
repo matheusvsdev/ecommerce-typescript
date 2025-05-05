@@ -1,22 +1,16 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import prisma from "../config/database";
+import { HttpStatusCode } from "../utils/HttpStatusCode";
 
-export const getRoles = async (req: Request, res: Response) => {
+export const getRoles = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const roles = await prisma.role.findMany();
-    res.json(roles);
+    res.status(HttpStatusCode.OK).json(roles);
   } catch (error) {
-    res.status(500).json({ error: "Erro ao buscar roles." });
-  }
-};
-
-export const createRole = async (req: Request, res: Response) => {
-  const { name } = req.body;
-
-  try {
-    const role = await prisma.role.create({ data: { name } });
-    res.status(201).json(role);
-  } catch (error) {
-    res.status(400).json({ error: "Erro ao criar role." });
+    next(error);
   }
 };

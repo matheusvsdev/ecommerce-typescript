@@ -9,7 +9,7 @@ import { categorySchema } from "../validations/categoryValidation";
 
 const router = Router();
 
-router.get("/", authenticateToken, getCategories);
+router.get("/", getCategories);
 router.post("/", authenticateToken, validateData(categorySchema), createCategory);
 
 export default router;

@@ -12,9 +12,9 @@ export const getUsers = async (
 ) => {
   try {
     const users = await prisma.user.findMany({ include: { role: true } });
-    res.json(users);
+    res.status(HttpStatusCode.OK).json(users);
   } catch (error) {
-    next();
+    next(error);
   }
 };
 
@@ -23,13 +23,18 @@ export const createUser = async (
   res: Response,
   next: NextFunction
 ) => {
-  // Valida dados com Zod
   userSchema.parse(req.body);
-  const { name, email, password, roleId }: { name: string, email: string, password: string, roleId: string} = req.body;
+  const {
+    name,
+    email,
+    password,
+    roleId,
+  }: { name: string; email: string; password: string; roleId: string } =
+    req.body;
 
   const emailExists = await prisma.user.findUnique({ where: { email: email } });
   if (emailExists) {
-    throw new AppError("Email já está em uso.", HttpStatusCode.CONFLICT);
+    return next(new AppError("Email já está em uso.", HttpStatusCode.CONFLICT));
   }
 
   if (!roleId) {
@@ -39,7 +44,9 @@ export const createUser = async (
   // Verifica se o roleId existe no banco
   const roleExists = await prisma.role.findUnique({ where: { id: roleId } });
   if (!roleExists) {
-    throw new AppError("Role ID não encontrado.", HttpStatusCode.NOT_FOUND);
+    return next(
+      new AppError("Role ID não encontrado.", HttpStatusCode.NOT_FOUND)
+    );
   }
 
   try {

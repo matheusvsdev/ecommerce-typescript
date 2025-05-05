@@ -1,30 +1,35 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import prisma from "../config/database";
 import { categorySchema } from "../validations/categoryValidation";
 import { HttpStatusCode } from "../utils/HttpStatusCode";
 
-export const getCategories = async (req: Request, res: Response) => {
+export const getCategories = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const categories = await prisma.category.findMany();
-    res.json(categories);
+    res.status(HttpStatusCode.OK).json(categories);
   } catch (error) {
-    res
-      .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
-      .json({ error: "Erro ao buscar categorias." });
+    console.error("[ERROR] Falha ao buscar categorias:", error); // Log para debug
+    next(error); // Passando erro para o middleware global
   }
 };
 
-export const createCategory = async (req: Request, res: Response) => {
-  // Valida dados com Zod
-  categorySchema.parse(req.body);
-  const { name } = req.body;
-
+export const createCategory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
+    categorySchema.parse(req.body);
+    const { name } = req.body;
+
     const category = await prisma.category.create({ data: { name } });
-    res.status(HttpStatusCode.OK).json(category);
+    res.status(HttpStatusCode.CREATED).json(category);
   } catch (error) {
-    res
-      .status(HttpStatusCode.BAD_REQUEST)
-      .json({ error: "Erro ao criar categoria." });
+    console.error("[ERROR] Falha ao criar categoria:", error);
+    next(error);
   }
 };

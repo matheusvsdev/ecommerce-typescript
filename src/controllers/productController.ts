@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../config/database";
+import { productSchema } from "../validations/productValidation";
 import { AppError } from "../utils/AppError";
 import { HttpStatusCode } from "../utils/HttpStatusCode";
 
@@ -9,13 +10,12 @@ export const getProducts = async (
   next: NextFunction
 ) => {
   try {
-
     /*
     Exemplo com TypeORM
     const productRepository = AppDataSource.getRepository(Product);
     const products = await productRepository.find();
     */
-   
+
     const products = await prisma.product.findMany({
       include: { category: true },
     });
@@ -34,19 +34,22 @@ export const createProduct = async (
   res: Response,
   next: NextFunction
 ) => {
+  productSchema.parse(req.body);
   const { name, price, categoryId } = req.body;
 
   try {
     if (!name || !price || !categoryId) {
-      throw new AppError(
-        "Dados inválidos para criação.",
-        HttpStatusCode.BAD_REQUEST
+      return next(
+        new AppError(
+          "Dados inválidos para criação.",
+          HttpStatusCode.BAD_REQUEST
+        )
       );
     }
 
     const existingProduct = await prisma.product.findFirst({ where: { name } });
     if (existingProduct) {
-      throw new AppError("Produto já existe.", HttpStatusCode.CONFLICT);
+      return next(new AppError("Produto já existe.", HttpStatusCode.CONFLICT));
     }
 
     const product = await prisma.product.create({
@@ -77,7 +80,9 @@ export const getProductById = async (
       },
     });
     if (!product) {
-      throw new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND);
+      return next(
+        new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND)
+      );
     }
 
     res.json(product);
@@ -97,7 +102,9 @@ export const updateProduct = async (
   try {
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
-      throw new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND);
+      return next(
+        new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND)
+      );
     }
 
     const updatedProduct = await prisma.product.update({
@@ -121,7 +128,9 @@ export const deleteProduct = async (
   try {
     const product = await prisma.product.findUnique({ where: { id } });
     if (!product) {
-      throw new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND);
+      return next(
+        new AppError("Produto não encontrado.", HttpStatusCode.NOT_FOUND)
+      );
     }
 
     await prisma.product.delete({ where: { id } });
