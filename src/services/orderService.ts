@@ -63,7 +63,7 @@ export async function getOrdersService(userId: string, role: string) {
           },
         });
 
-  // 🔹 Agora formatamos os dados antes de retornar
+  // Agora formatamos os dados antes de retornar
   return orders.map((order) => ({
     orderId: order.id,
     client: order.userId,
@@ -148,7 +148,7 @@ export async function getOrderByIdService(
   if (!order)
     throw new AppError("Pedido não encontrado.", HttpStatusCode.NOT_FOUND);
 
-  // 🔹 Estruturamos a resposta corretamente
+  // Estruturamos a resposta corretamente
   return {
     id: order.id,
     client: order.userId,
